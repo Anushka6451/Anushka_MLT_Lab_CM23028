@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Overlay Object Detection</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#141e30;
+background:linear-gradient(to right,#243b55,#141e30);
+color:white;
+text-align:center;
+}
+
+.wrapper{
+position:relative;
+display:inline-block;
+}
+
+video{
+border-radius:12px;
+}
+
+#label{
+position:absolute;
+top:10px;
+left:10px;
+background:rgba(0,0,0,0.6);
+padding:8px 12px;
+border-radius:6px;
+font-size:18px;
+}
+
+button{
+margin-top:20px;
+padding:10px 20px;
+border:none;
+background:#243b55;
+color:white;
+border-radius:8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Overlay Object Classification</h1>
+
+<div class="wrapper">
+
+<video id="video" width="500" height="350" autoplay></video>
+
+<div id="label">Loading...</div>
+
+</div>
+
+<br>
+
+<button onclick="start()">Start</button>
+
+<script>
+
+let model;
+let video=document.getElementById("video");
+
+async function setup(){
+
+const stream=await navigator.mediaDevices.getUserMedia({video:true});
+video.srcObject=stream;
+
+model=await mobilenet.load();
+
+classify();
+
+}
+
+async function classify(){
+
+const predictions=await model.classify(video);
+
+document.getElementById("label").innerHTML=
+predictions[0].className+" "+(predictions[0].probability*100).toFixed(1)+"%";
+
+requestAnimationFrame(classify);
+
+}
+
+function start(){
+setup();
+}
+
+</script>
+
+</body>
+</html>

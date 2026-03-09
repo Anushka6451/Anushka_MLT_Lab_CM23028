@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tensor Reshape vs Flatten</title>
+  <!-- Load TensorFlow.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <h2>Tensor Reshape vs Flatten</h2>
+  <div id="output"></div>
+
+  <script>
+    const outputDiv = document.getElementById("output");
+
+    // Original tensor: shape [2, 3]
+    const tensor = tf.tensor2d([[1, 2, 3], [4, 5, 6]]);
+    outputDiv.innerHTML += "<p>Original Tensor (shape [2,3]): " + tensor.toString() + "</p>";
+
+    // Reshape to [3, 2]
+    const reshaped = tensor.reshape([3, 2]);
+    outputDiv.innerHTML += "<p>Reshaped Tensor (shape [3,2]): " + reshaped.toString() + "</p>";
+
+    // Flatten to [6]
+    const flattened = tensor.flatten();
+    outputDiv.innerHTML += "<p>Flattened Tensor (shape [6]): " + flattened.toString() + "</p>";
+  </script>
+</body>
+</html>

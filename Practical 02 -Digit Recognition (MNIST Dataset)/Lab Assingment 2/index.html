@@ -1,0 +1,29 @@
+<h3>Draw a Digit (0-9)</h3>
+<canvas id="canvas" width="140" height="140" style="border:2px solid #000; background: black;"></canvas>
+<button onclick="clearCanvas()">Clear</button>
+<button onclick="predictDigit()">Classify Digit</button>
+<h2 id="prediction-text">Prediction: -</h2>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    canvas.onmousedown = () => drawing = true;
+    canvas.onmouseup = () => drawing = false;
+    canvas.onmousemove = (e) => {
+        if(!drawing) return;
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(e.offsetX, e.offsetY, 8, 0, Math.PI*2);
+        ctx.fill();
+    };
+
+    function clearCanvas() { ctx.clearRect(0, 0, 140, 140); }
+
+    function predictDigit() {
+        // Logic: Resize 140x140 canvas to 28x28 tensor and run model.predict()
+        const randomDigit = Math.floor(Math.random() * 10); // Mock prediction
+        document.getElementById('prediction-text').innerText = "Prediction: " + randomDigit;
+    }
+</script>

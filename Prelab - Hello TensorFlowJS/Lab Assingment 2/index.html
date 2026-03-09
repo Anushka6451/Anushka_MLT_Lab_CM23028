@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vector Operations</title>
+  <!-- Load TensorFlow.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <h2>Element-wise Vector Operations</h2>
+  <div id="output"></div>
+
+  <script>
+    const outputDiv = document.getElementById("output");
+
+    // Define two vectors
+    const v1 = tf.tensor1d([1, 2, 3, 4]);
+    const v2 = tf.tensor1d([5, 6, 7, 8]);
+
+    // Element-wise addition
+    const addResult = tf.add(v1, v2);
+
+    // Element-wise multiplication
+    const mulResult = tf.mul(v1, v2);
+
+    // Display results
+    outputDiv.innerHTML += "<p>Vector 1: " + v1.toString() + "</p>";
+    outputDiv.innerHTML += "<p>Vector 2: " + v2.toString() + "</p>";
+    outputDiv.innerHTML += "<p>Addition Result: " + addResult.toString() + "</p>";
+    outputDiv.innerHTML += "<p>Multiplication Result: " + mulResult.toString() + "</p>";
+  </script>
+</body>
+</html>

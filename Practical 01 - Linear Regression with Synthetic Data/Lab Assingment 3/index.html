@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Regression Predictions</title>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <!-- Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h2 { color: #333; }
+    .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    #plot { height: 400px; }
+    .metric { font-weight: bold; color: #444; }
+  </style>
+</head>
+<body>
+  <h2>📊 Regression Predictions on Unseen Inputs</h2>
+
+  <div class="card">
+    <h3>Predicted vs Expected (Unseen Data)</h3>
+    <div id="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Text Results</h3>
+    <div id="metrics"></div>
+  </div>
+
+  <script>
+    async function run() {
+      // 1. Generate synthetic training data: y = 2x + 1 + noise
+      const xs = tf.randomUniform([100], -5, 5);
+      const noise = tf.randomNormal([100], 0, 0.5);
+      const ys = xs.mul(2).add(1).add(noise);
+
+      // 2. Define and train regression model
+      const model = tf.sequential();
+      model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+      model.compile({optimizer: 'sgd', loss: 'meanSquaredError'});
+
+      await model.fit(xs.reshape([100, 1]), ys.reshape([100, 1]), {
+        epochs: 50,
+        verbose: 0
+      });
+
+      // 3. Unseen inputs
+      const unseenXs = tf.tensor1d([-4, -2, 0, 2, 4]);
+      const expectedYs = unseenXs.mul(2).add(1); // true function without noise
+      const predictedYs = model.predict(unseenXs.reshape([5, 1])).reshape([5]);
+
+      // 4. Convert to arrays
+      const unseenArr = await unseenXs.array();
+      const expectedArr = await expectedYs.array();
+      const predictedArr = await predictedYs.array();
+
+      // 5. Plot comparison
+      const traceExpected = {
+        x: unseenArr,
+        y: expectedArr,
+        mode: 'markers+lines',
+        name: 'Expected',
+        marker: {color: 'blue'}
+      };
+
+      const tracePredicted = {
+        x: unseenArr,
+        y: predictedArr,
+        mode: 'markers+lines',
+        name: 'Predicted',
+        marker: {color: 'red'}
+      };
+
+      Plotly.newPlot('plot', [traceExpected, tracePredicted], {
+        title: 'Predicted vs Expected (Unseen Inputs)',
+        xaxis: {title: 'X'},
+        yaxis: {title: 'Y'}
+      });
+
+      // 6. Text results
+      let metricsHTML = "<h4>Unseen Predictions</h4>";
+      unseenArr.forEach((x, i) => {
+        metricsHTML += `<p>X=${x}: Expected=${expectedArr[i].toFixed(2)}, Predicted=${predictedArr[i].toFixed(2)}</p>`;
+      });
+      document.getElementById("metrics").innerHTML = metricsHTML;
+    }
+
+    run();
+  </script>
+</body>
+</html>

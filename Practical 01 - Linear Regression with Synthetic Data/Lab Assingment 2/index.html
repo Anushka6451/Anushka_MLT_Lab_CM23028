@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Learning Rate Experiment</title>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <!-- Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h2 { color: #333; }
+    .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    #plot { height: 500px; }
+  </style>
+</head>
+<body>
+  <h2>📊 Learning Rate Experiment</h2>
+  <div class="card">
+    <h3>Loss Curves for Different Learning Rates</h3>
+    <div id="plot"></div>
+  </div>
+  <div class="card">
+    <h3>Text Results</h3>
+    <div id="metrics"></div>
+  </div>
+
+  <script>
+    async function trainWithLR(lr) {
+      // Synthetic data: y = 2x + 1 + noise
+      const xs = tf.randomUniform([100], -5, 5);
+      const noise = tf.randomNormal([100], 0, 0.5);
+      const ys = xs.mul(2).add(1).add(noise);
+
+      // Model
+      const model = tf.sequential();
+      model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+      model.compile({optimizer: tf.train.sgd(lr), loss: 'meanSquaredError'});
+
+      const history = await model.fit(xs.reshape([100, 1]), ys.reshape([100, 1]), {
+        epochs: 50,
+        verbose: 0
+      });
+
+      // Predictions
+      const preds = model.predict(xs.reshape([100, 1])).reshape([100]);
+
+      // Metrics
+      const finalLoss = history.history.loss[history.history.loss.length - 1];
+      const mae = tf.metrics.meanAbsoluteError(ys, preds).dataSync()[0];
+      const ssRes = ys.sub(preds).square().sum().dataSync()[0];
+      const ssTot = ys.sub(ys.mean()).square().sum().dataSync()[0];
+      const r2 = 1 - (ssRes / ssTot);
+
+      return {lr, history: history.history.loss, finalLoss, mae, r2};
+    }
+
+    async function run() {
+      const learningRates = [0.001, 0.01, 0.1];
+      const results = [];
+
+      for (let lr of learningRates) {
+        const res = await trainWithLR(lr);
+        results.push(res);
+      }
+
+      // Plot loss curves
+      const traces = results.map(r => ({
+        x: Array.from({length: r.history.length}, (_, i) => i + 1),
+        y: r.history,
+        mode: 'lines',
+        name: `LR=${r.lr}`
+      }));
+
+      Plotly.newPlot('plot', traces, {
+        title: 'Loss vs Epochs',
+        xaxis: {title: 'Epoch'},
+        yaxis: {title: 'Loss'}
+      });
+
+      // Show text metrics
+      let metricsHTML = "";
+      results.forEach(r => {
+        metricsHTML += `
+          <p><b>Learning Rate ${r.lr}</b><br>
+          Final Loss: ${r.finalLoss.toFixed(4)}<br>
+          MAE: ${r.mae.toFixed(4)}<br>
+          R²: ${r.r2.toFixed(4)}</p>
+        `;
+      });
+      document.getElementById("metrics").innerHTML = metricsHTML;
+    }
+
+    run();
+  </script>
+</body>
+</html>

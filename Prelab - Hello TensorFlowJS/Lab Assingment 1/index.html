@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tensor Examples</title>
+  <!-- Load TensorFlow.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <h2>Tensor Examples</h2>
+  <div id="output"></div>
+
+  <script>
+    const outputDiv = document.getElementById("output");
+
+    // Scalar (0D tensor)
+    const scalar = tf.scalar(5);
+    outputDiv.innerHTML += "<p>Scalar: " + scalar.toString() + "</p>";
+
+    // Vector (1D tensor)
+    const vector = tf.tensor1d([1, 2, 3, 4]);
+    outputDiv.innerHTML += "<p>Vector: " + vector.toString() + "</p>";
+
+    // Matrix (2D tensor)
+    const matrix = tf.tensor2d([[1, 2], [3, 4]]);
+    outputDiv.innerHTML += "<p>Matrix: " + matrix.toString() + "</p>";
+  </script>
+</body>
+</html>

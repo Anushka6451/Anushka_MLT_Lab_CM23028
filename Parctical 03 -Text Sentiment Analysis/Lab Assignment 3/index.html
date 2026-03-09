@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CNN vs Dense Comparison</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <h2>⚖️ CNN vs Dense on MNIST</h2>
+  <div id="cnnAcc">CNN Accuracy: Training...</div>
+  <div id="denseAcc">Dense Accuracy: Training...</div>
+
+  <script>
+    async function run() {
+      const mnist = await tf.data.mnist(); // requires tfjs-datasets
+      const trainData = mnist.train;
+      const testData = mnist.test;
+
+      const trainImages = trainData.images.reshape([60000,28,28,1]).div(255);
+      const trainLabels = tf.oneHot(trainData.labels,10);
+      const testImages = testData.images.reshape([10000,28,28,1]).div(255);
+      const testLabels = tf.oneHot(testData.labels,10);
+
+      // CNN
+      const cnn = tf.sequential();
+      cnn.add(tf.layers.conv2d({filters:32,kernelSize:3,activation:'relu',inputShape:[28,28,1]}));
+      cnn.add(tf.layers.maxPooling2d({poolSize:2,strides:2}));
+      cnn.add(tf.layers.flatten());
+      cnn.add(tf.layers.dense({units:128,activation:'relu'}));
+      cnn.add(tf.layers.dense({units:10,activation:'softmax'}));
+      cnn.compile({optimizer:'adam',loss:'categoricalCrossentropy',metrics:['accuracy']});
+      await cnn.fit(trainImages, trainLabels, {epochs:5,batchSize:128});
+      const cnnEval = cnn.evaluate(testImages,testLabels);
+      document.getElementById("cnnAcc").innerText =
+        "CNN Accuracy: " + (cnnEval[1].dataSync()[0]*100).toFixed(2) + "%";
+
+      // Dense
+      const dense = tf.sequential();
+      dense.add(tf.layers.flatten({inputShape:[28,28,1]}));
+      dense.add(tf.layers.dense({units:128,activation:'relu'}));
+      dense.add(tf.layers.dense({units:10,activation:'softmax'}));
+      dense.compile({optimizer:'adam',loss:'categoricalCrossentropy',metrics:['accuracy']});
+      await dense.fit(trainImages, trainLabels, {epochs:5,batchSize:128});
+      const denseEval = dense.evaluate(testImages,testLabels);
+      document.getElementById("denseAcc").innerText =
+        "Dense Accuracy: " + (denseEval[1].dataSync()[0]*100).toFixed(2) + "%";
+    }
+    run();
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Image Classification Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+body{
+font-family:Arial;
+background:linear-gradient(135deg,#1e3c72,#2a5298);
+color:white;
+text-align:center;
+}
+
+.container{
+width:80%;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+color:black;
+padding:20px;
+margin:20px;
+border-radius:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.3);
+}
+
+button{
+padding:10px 20px;
+border:none;
+background:#2a5298;
+color:white;
+border-radius:8px;
+cursor:pointer;
+}
+
+img{
+width:300px;
+border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>AI Image Classification Dashboard</h1>
+
+<div class="container">
+
+<div class="card">
+<h2>MobileNet Classification</h2>
+
+<img id="image" src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Pug_600.jpg">
+
+<br><br>
+
+<button onclick="predict()">Classify Image</button>
+
+<h3>Top 3 Predictions</h3>
+<div id="result"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let model;
+
+async function loadModel(){
+model = await mobilenet.load();
+console.log("MobileNet Loaded");
+}
+
+loadModel();
+
+async function predict(){
+
+const img=document.getElementById("image");
+
+const predictions=await model.classify(img);
+
+let output="";
+
+for(let i=0;i<3;i++){
+output+=predictions[i].className+" : "+(predictions[i].probability*100).toFixed(2)+"%<br>";
+}
+
+document.getElementById("result").innerHTML=output;
+
+}
+
+</script>
+
+</body>
+</html>

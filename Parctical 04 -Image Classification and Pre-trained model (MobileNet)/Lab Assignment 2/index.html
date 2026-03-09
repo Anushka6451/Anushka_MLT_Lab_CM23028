@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Model Accuracy Test</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f2027;
+background:linear-gradient(to right,#2c5364,#203a43,#0f2027);
+color:white;
+text-align:center;
+}
+
+img{
+width:200px;
+margin:10px;
+border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>MobileNet Accuracy Test</h1>
+
+<button onclick="runTest()">Run Test</button>
+
+<div id="results"></div>
+
+<script>
+
+let model;
+
+const images=[
+{src:"https://upload.wikimedia.org/wikipedia/commons/9/9a/Pug_600.jpg",label:"pug"},
+{src:"https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg",label:"cat"},
+{src:"https://upload.wikimedia.org/wikipedia/commons/4/4c/Push_van_cat.jpg",label:"cat"},
+{src:"https://upload.wikimedia.org/wikipedia/commons/5/54/Golden_Retriever_medium-to-light-coat.jpg",label:"dog"},
+{src:"https://upload.wikimedia.org/wikipedia/commons/0/0c/Cow_female_black_white.jpg",label:"cow"}
+];
+
+async function load(){
+model=await mobilenet.load();
+}
+
+load();
+
+async function runTest(){
+
+let correct=0;
+
+for(let i=0;i<images.length;i++){
+
+let img=new Image();
+img.src=images[i].src;
+
+await new Promise(resolve=>img.onload=resolve);
+
+let prediction=await model.classify(img);
+
+let predicted=prediction[0].className.toLowerCase();
+
+let actual=images[i].label;
+
+if(predicted.includes(actual)){
+correct++;
+}
+
+document.getElementById("results").innerHTML+=
+"Image "+(i+1)+" → Predicted: "+prediction[0].className+"<br>";
+
+}
+
+let accuracy=(correct/images.length)*100;
+
+document.getElementById("results").innerHTML+="<br><b>Accuracy: "+accuracy+"%</b>";
+
+}
+
+</script>
+
+</body>
+</html>

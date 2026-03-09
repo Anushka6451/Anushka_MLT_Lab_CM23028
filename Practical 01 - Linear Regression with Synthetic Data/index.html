@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Linear Regression from Scratch</title>
+    <!-- TensorFlow.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        canvas {
+            max-width: 1000px;  /* smaller width */
+            max-height: 700px; /* smaller height */
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Linear Regression: Training</h2>
+
+    <canvas id="lossChart"></canvas>
+    <canvas id="predictionChart"></canvas>
+
+    <script>
+        // Generate synthetic data: y = 2x + 3 + noise
+        const x_vals = tf.randomUniform([100], -1, 1);
+        const y_vals = x_vals.mul(2).add(3).add(tf.randomNormal([100], 0, 0.2));
+
+        // Define a simple model: y = Wx + b
+        const model = tf.sequential();
+        model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+
+        model.compile({
+            optimizer: tf.train.sgd(0.5),
+            loss: 'meanSquaredError'
+        });
+
+        // Arrays to store loss per epoch
+        const losses = [];
+
+        async function trainModel() {
+            await model.fit(x_vals.reshape([100,1]), y_vals.reshape([100,1]), {
+                epochs: 50,
+                callbacks: {
+                    onEpochEnd: (epoch, logs) => {
+                        losses.push(logs.loss);
+                        console.log(`Epoch ${epoch}: loss=${logs.loss}`);
+                    }
+                }
+            });
+            plotLoss();
+            plotPrediction();
+
+        }
+
+        function plotLoss() {
+            const ctx = document.getElementById('lossChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: losses.length}, (_, i) => i+1),
+                    datasets: [{
+                        label: 'Loss per Epoch',
+                        data: losses,
+                        borderColor: 'blue',
+                        fill: false,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,  // allows canvas to obey max-width/height
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+        }
+
+        async function plotPrediction() {
+            const xs = tf.linspace(-1, 1, 100);
+            const ys = model.predict(xs.reshape([100,1]));
+
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Original Data',
+                            data: Array.from(x_vals.dataSync()).map((x,i)=>({x: x, y: y_vals.dataSync()[i]})),
+                            backgroundColor: 'red'
+                        },
+                        {
+                            label: 'Model Prediction',
+                            data: Array.from(xs.dataSync()).map((x,i)=>({x: x, y: ys.dataSync()[i]})),
+                            borderColor: 'blue',
+                            type: 'line',
+                            fill: false,
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, position: 'top' } }
+                }
+            });
+        }
+
+        trainModel();
+    </script>
+</body>
+</html>

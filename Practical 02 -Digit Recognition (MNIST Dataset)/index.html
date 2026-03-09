@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MNIST Digit Recognition</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+
+<style>
+canvas{
+border:2px solid black;
+background:black;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Draw a Digit (0-9)</h2>
+
+<canvas id="canvas" width="280" height="280"></canvas>
+
+<br><br>
+
+<button onclick="predict()">Predict</button>
+<button onclick="clearCanvas()">Clear</button>
+
+<h3 id="status">Loading AI Model...</h3>
+
+<script>
+
+let model;
+
+async function loadModel(){
+
+model = await tf.loadLayersModel(
+"https://raw.githubusercontent.com/zaidalyafeai/tensorflowjs-models/master/mnist/model.json"
+);
+
+document.getElementById("status").innerText="Model Loaded ✅ Draw a digit";
+
+}
+
+loadModel();
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+ctx.fillStyle="black";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+let drawing=false;
+
+canvas.addEventListener("mousedown",()=>drawing=true);
+canvas.addEventListener("mouseup",()=>drawing=false);
+
+canvas.addEventListener("mousemove",(e)=>{
+
+if(!drawing) return;
+
+ctx.strokeStyle="white";
+ctx.lineWidth=20;
+ctx.lineCap="round";
+
+ctx.lineTo(e.offsetX,e.offsetY);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(e.offsetX,e.offsetY);
+
+});
+
+function clearCanvas(){
+
+ctx.fillStyle="black";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+}
+
+async function predict(){
+
+if(!model){
+alert("Model still loading");
+return;
+}
+
+let img=tf.browser.fromPixels(canvas,1)
+.resizeNearestNeighbor([28,28])
+toFloat()
+.div(255)
+.expandDims(0);
+
+let prediction=model.predict(img);
+
+let digit=prediction.argMax(1).dataSync()[0];
+
+document.getElementById("status").innerText="Prediction: "+digit;
+
+}
+
+</script>
+
+</body>
+</html>

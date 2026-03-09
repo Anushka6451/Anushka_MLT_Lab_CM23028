@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Interactive ML Dashboard</title>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <!-- Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h2 { color: #333; }
+    .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    #plot { height: 400px; }
+    .metric { font-weight: bold; color: #444; }
+  </style>
+</head>
+<body>
+  <h2>📊 Machine Learning Dashboard</h2>
+
+  <!-- Section: Model Training -->
+  <div class="card">
+    <h3>Model Training Status</h3>
+    <div id="status">Training model...</div>
+  </div>
+
+  <!-- Section: Plot -->
+  <div class="card">
+    <h3>Predicted vs Actual</h3>
+    <div id="plot"></div>
+  </div>
+
+  <!-- Section: Text Results -->
+  <div class="card">
+    <h3>Model Metrics</h3>
+    <div id="metrics"></div>
+  </div>
+
+  <!-- Section: Controls -->
+  <div class="card">
+    <h3>Controls</h3>
+    <button onclick="run()">Retrain Model</button>
+  </div>
+
+  <script>
+    async function run() {
+      document.getElementById("status").innerText = "Training model...";
+
+      // Synthetic data: y = 2x + 1 + noise
+      const xs = tf.randomUniform([100], -5, 5);
+      const noise = tf.randomNormal([100], 0, 0.5);
+      const ys = xs.mul(2).add(1).add(noise);
+
+      // Simple regression model
+      const model = tf.sequential();
+      model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+      model.compile({optimizer: 'sgd', loss: 'meanSquaredError'});
+
+      const history = await model.fit(xs.reshape([100, 1]), ys.reshape([100, 1]), {
+        epochs: 50,
+        verbose: 0
+      });
+
+      const preds = model.predict(xs.reshape([100, 1])).reshape([100]);
+
+      // Convert tensors to arrays
+      const xsArr = await xs.array();
+      const ysArr = await ys.array();
+      const predsArr = await preds.array();
+
+      // Plot
+      const traceActual = { x: xsArr, y: ysArr, mode: 'markers', name: 'Actual', marker: {color: 'blue'} };
+      const tracePred = { x: xsArr, y: predsArr, mode: 'markers', name: 'Predicted', marker: {color: 'red'} };
+
+      Plotly.newPlot('plot', [traceActual, tracePred], {
+        title: 'Predicted vs Actual Values',
+        xaxis: {title: 'X'},
+        yaxis: {title: 'Y'}
+      });
+
+      // Calculate metrics
+      const finalLoss = history.history.loss[history.history.loss.length - 1];
+      const mae = tf.metrics.meanAbsoluteError(ys, preds).dataSync()[0];
+      const ssRes = ys.sub(preds).square().sum().dataSync()[0];
+      const ssTot = ys.sub(ys.mean()).square().sum().dataSync()[0];
+      const r2 = 1 - (ssRes / ssTot);
+
+      // Display metrics
+      document.getElementById("metrics").innerHTML = `
+        <p class="metric">Final Loss (MSE): ${finalLoss.toFixed(4)}</p>
+        <p class="metric">Mean Absolute Error: ${mae.toFixed(4)}</p>
+        <p class="metric">R² Score: ${r2.toFixed(4)}</p>
+      `;
+
+      document.getElementById("status").innerText = "Model trained successfully ✅";
+    }
+
+    run();
+  </script>
+</body>
+</html>

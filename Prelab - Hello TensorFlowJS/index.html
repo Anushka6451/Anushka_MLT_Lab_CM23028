@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TensorFlow.js CDN Test</title>
+  <!-- Load TensorFlow.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <h2>TensorFlow.js Installation Test</h2>
+  <pre id="output"></pre>
+
+  <script>
+    // Create two tensors
+    const a = tf.tensor([1, 2, 3, 4]);
+    const b = tf.tensor([10, 20, 30, 40]);
+
+    // Perform addition
+    const c = a.add(b);
+
+    // Print results
+    document.getElementById("output").innerText =
+      "Tensor A: " + a.toString() + "\n" +
+      "Tensor B: " + b.toString() + "\n" +
+      "A + B: " + c.toString();
+  </script>
+</body>
+</html>

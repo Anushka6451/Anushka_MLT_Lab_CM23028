@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Webcam Object Classification</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(120deg,#1e3c72,#2a5298);
+color:white;
+text-align:center;
+}
+
+.container{
+margin-top:40px;
+}
+
+video{
+border-radius:12px;
+box-shadow:0 5px 20px rgba(0,0,0,0.4);
+}
+
+.card{
+background:white;
+color:black;
+width:400px;
+margin:auto;
+padding:20px;
+border-radius:12px;
+margin-top:20px;
+}
+
+button{
+padding:10px 20px;
+background:#2a5298;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Real-Time Object Classification</h1>
+
+<div class="container">
+
+<video id="webcam" autoplay width="400" height="300"></video>
+
+<br><br>
+
+<button onclick="start()">Start Classification</button>
+
+<div class="card">
+<h3>Prediction</h3>
+<div id="prediction">Waiting...</div>
+</div>
+
+</div>
+
+<script>
+
+let model;
+let webcam=document.getElementById("webcam");
+
+async function setupCamera(){
+
+const stream=await navigator.mediaDevices.getUserMedia({video:true});
+webcam.srcObject=stream;
+
+return new Promise(resolve=>{
+webcam.onloadedmetadata=()=>resolve(webcam);
+});
+
+}
+
+async function loadModel(){
+
+model=await mobilenet.load();
+console.log("MobileNet Loaded");
+
+}
+
+async function start(){
+
+await setupCamera();
+await loadModel();
+
+predict();
+
+}
+
+async function predict(){
+
+const predictions=await model.classify(webcam);
+
+document.getElementById("prediction").innerHTML=
+predictions[0].className+" ("+(predictions[0].probability*100).toFixed(2)+"%)";
+
+requestAnimationFrame(predict);
+
+}
+
+</script>
+
+</body>
+</html>

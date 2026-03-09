@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Webcam Object Detection</title>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <!-- MobileNet Pretrained Model -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <!-- Plotly.js for visualization -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      min-height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    h2 {
+      color: #222;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      margin: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      width: 700px;
+      max-width: 95%;
+    }
+    video {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 640px;
+    }
+    #result {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #333;
+    }
+    #plot {
+      height: 300px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #6C63FF;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #574b90;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎥 Webcam Object Detection Dashboard</h2>
+
+  <!-- Webcam Section -->
+  <div class="card">
+    <h3>Live Webcam Feed</h3>
+    <video autoplay playsinline muted id="webcam"></video><br>
+    <button onclick="toggleDetection()">Start Detection</button>
+  </div>
+
+  <!-- Result Section -->
+  <div class="card">
+    <h3>Prediction Result</h3>
+    <div id="result">Awaiting webcam...</div>
+  </div>
+
+  <!-- Visualization Section -->
+  <div class="card">
+    <h3>Confidence Distribution</h3>
+    <div id="plot"></div>
+  </div>
+
+  <script>
+    let net;
+    let webcamElement = document.getElementById('webcam');
+    let detecting = false;
+
+    async function setupWebcam() {
+      return new Promise((resolve, reject) => {
+        navigator.mediaDevices.getUserMedia({video: true})
+          .then(stream => {
+            webcamElement.srcObject = stream;
+            webcamElement.addEventListener('loadeddata', resolve, false);
+          })
+          .catch(err => reject(err));
+      });
+    }
+
+    async function loadModel() {
+      net = await mobilenet.load();
+      document.getElementById("result").innerText = "Model loaded ✅ Click Start Detection!";
+    }
+
+    async function detectFrame() {
+      if (!detecting) return;
+      const predictions = await net.classify(webcamElement);
+
+      // Show top prediction
+      const top = predictions[0];
+      document.getElementById("result").innerText =
+        `Prediction: ${top.className} (Confidence: ${(top.probability*100).toFixed(2)}%)`;
+
+      // Plot confidence distribution
+      const data = [{
+        x: predictions.map(p => p.className),
+        y: predictions.map(p => p.probability),
+        type: "bar",
+        marker: {color: "#6C63FF"}
+      }];
+
+      const layout = {
+        title: "Top Predictions",
+        yaxis: {range: [0,1], title: "Probability"},
+        margin: {t: 40}
+      };
+
+      Plotly.newPlot("plot", data, layout);
+
+      requestAnimationFrame(detectFrame);
+    }
+
+    function toggleDetection() {
+      detecting = !detecting;
+      if (detecting) {
+        document.querySelector("button").innerText = "Stop Detection";
+        detectFrame();
+      } else {
+        document.querySelector("button").innerText = "Start Detection";
+        document.getElementById("result").innerText = "Detection stopped.";
+      }
+    }
+
+    // Initialize
+    setupWebcam().then(loadModel);
+  </script>
+</body>
+</html>

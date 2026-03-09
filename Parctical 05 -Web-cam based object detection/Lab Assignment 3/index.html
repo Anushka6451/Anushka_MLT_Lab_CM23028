@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Real-Time AI Performance Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+text-align:center;
+}
+
+.dashboard{
+display:flex;
+justify-content:center;
+gap:30px;
+margin-top:20px;
+}
+
+.card{
+background:white;
+color:black;
+padding:20px;
+border-radius:12px;
+width:180px;
+}
+
+video{
+border-radius:10px;
+}
+
+button{
+padding:10px 20px;
+margin-top:15px;
+background:#2c5364;
+border:none;
+color:white;
+border-radius:8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Real-Time Inference Performance</h1>
+
+<video id="video" width="500" height="350" autoplay></video>
+
+<br>
+
+<button onclick="start()">Start Test</button>
+
+<div class="dashboard">
+
+<div class="card">
+<h3>Prediction</h3>
+<div id="pred">--</div>
+</div>
+
+<div class="card">
+<h3>FPS</h3>
+<div id="fps">0</div>
+</div>
+
+<div class="card">
+<h3>Inference Time</h3>
+<div id="time">0 ms</div>
+</div>
+
+</div>
+
+<script>
+
+let model;
+let video=document.getElementById("video");
+
+let lastTime=performance.now();
+let frames=0;
+
+async function setup(){
+
+const stream=await navigator.mediaDevices.getUserMedia({video:true});
+video.srcObject=stream;
+
+model=await mobilenet.load();
+
+loop();
+
+}
+
+async function loop(){
+
+let start=performance.now();
+
+const pred=await model.classify(video);
+
+let end=performance.now();
+
+document.getElementById("pred").innerHTML=pred[0].className;
+
+document.getElementById("time").innerHTML=(end-start).toFixed(2)+" ms";
+
+frames++;
+
+let now=performance.now();
+
+if(now-lastTime>=1000){
+
+document.getElementById("fps").innerHTML=frames;
+
+frames=0;
+
+lastTime=now;
+
+}
+
+requestAnimationFrame(loop);
+
+}
+
+function start(){
+setup();
+}
+
+</script>
+
+</body>
+</html>
