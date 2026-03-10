@@ -123,7 +123,3 @@ Anushka_MLT_Lab_CM23028
 **Anushka**
 Machine Learning Techniques Lab
 Academic Repository
-
----
-
-If you want, I can also generate a **much better GitHub README (with badges, screenshots, and project demo section)** so your repo looks **professional for internships and recruiters**.
