@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>Digit Recognition</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0"></script>
+
+<style>
+body{
+font-family:Arial;
+text-align:center;
+background:#f0f0f0;
+}
+
+canvas{
+border:3px solid black;
+background:white;
+cursor:crosshair;
+}
+
+button{
+padding:10px 20px;
+margin:10px;
+font-size:16px;
+}
+
+#prediction{
+font-size:50px;
+color:#0077ff;
+font-weight:bold;
+}
+
+.bar{
+height:20px;
+background:#0077ff;
+margin:4px;
+color:white;
+text-align:left;
+padding-left:5px;
+}
+
+#probabilities{
+width:300px;
+margin:auto;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>Handwritten Digit Recognition (CNN)</h1>
+
+<button onclick="trainModel()">Train Model</button> <button onclick="clearCanvas()">Clear</button>
+
+<p id="status">Status: Idle</p>
+
+<h2>Prediction</h2>
+<div id="prediction">?</div>
+
+<canvas id="drawCanvas" width="280" height="280"></canvas>
+
+<h3>Digit Probabilities</h3>
+<div id="probabilities"></div>
+
+<script>
+
+let model;
+
+const canvas=document.getElementById("drawCanvas");
+const ctx=canvas.getContext("2d",{willReadFrequently:true});
+
+ctx.fillStyle="white";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+let drawing=false;
+
+canvas.addEventListener("mousedown",startDraw);
+canvas.addEventListener("mousemove",draw);
+canvas.addEventListener("mouseup",stopDraw);
+canvas.addEventListener("mouseleave",stopDraw);
+
+function startDraw(e){
+drawing=true;
+ctx.beginPath();
+ctx.moveTo(getX(e),getY(e));
+}
+
+function draw(e){
+if(!drawing) return;
+
+ctx.lineWidth=12;
+ctx.lineCap="round";
+ctx.strokeStyle="black";
+
+ctx.lineTo(getX(e),getY(e));
+ctx.stroke();
+
+predict();
+}
+
+function stopDraw(){
+drawing=false;
+ctx.beginPath();
+}
+
+function getX(e){
+const rect=canvas.getBoundingClientRect();
+return e.clientX-rect.left;
+}
+
+function getY(e){
+const rect=canvas.getBoundingClientRect();
+return e.clientY-rect.top;
+}
+
+function clearCanvas(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.fillStyle="white";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+document.getElementById("prediction").innerText="?";
+document.getElementById("probabilities").innerHTML="";
+}
+
+async function trainModel(){
+
+document.getElementById("status").innerText="Creating CNN model...";
+
+model=tf.sequential();
+
+model.add(tf.layers.conv2d({
+inputShape:[28,28,1],
+filters:32,
+kernelSize:3,
+activation:'relu'
+}));
+
+model.add(tf.layers.maxPooling2d({poolSize:2}));
+
+model.add(tf.layers.conv2d({
+filters:64,
+kernelSize:3,
+activation:'relu'
+}));
+
+model.add(tf.layers.maxPooling2d({poolSize:2}));
+
+model.add(tf.layers.flatten());
+
+model.add(tf.layers.dense({
+units:128,
+activation:'relu'
+}));
+
+model.add(tf.layers.dense({
+units:10,
+activation:'softmax'
+}));
+
+model.compile({
+optimizer:'adam',
+loss:'categoricalCrossentropy',
+metrics:['accuracy']
+});
+
+document.getElementById("status").innerText="Loading MNIST...";
+
+const mnist=new MnistData();
+await mnist.load();
+
+document.getElementById("status").innerText="Training...";
+
+const batchSize=64;
+const batches=300;
+
+for(let i=0;i<batches;i++){
+
+const batch=mnist.nextTrainBatch(batchSize);
+
+await model.fit(batch.xs,batch.labels,{
+batchSize:batchSize,
+epochs:1
+});
+
+batch.xs.dispose();
+batch.labels.dispose();
+
+document.getElementById("status").innerText=`Training ${i+1}/${batches}`;
+
+await tf.nextFrame();
+}
+
+document.getElementById("status").innerText="Training Complete";
+}
+
+function preprocess(){
+
+const tempCanvas=document.createElement("canvas");
+const tempCtx=tempCanvas.getContext("2d",{willReadFrequently:true});
+
+tempCanvas.width=28;
+tempCanvas.height=28;
+
+tempCtx.fillStyle="white";
+tempCtx.fillRect(0,0,28,28);
+
+tempCtx.drawImage(canvas,0,0,28,28);
+
+const imgData=tempCtx.getImageData(0,0,28,28);
+
+let arr=[];
+
+for(let i=0;i<imgData.data.length;i+=4){
+arr.push((255-imgData.data[i])/255);
+}
+
+return tf.tensor(arr,[1,28,28,1]);
+}
+
+function predict(){
+
+if(!model) return;
+
+const input=preprocess();
+
+const prediction=model.predict(input);
+
+const probs=prediction.dataSync();
+
+const digit=prediction.argMax(-1).dataSync()[0];
+
+document.getElementById("prediction").innerText=digit;
+
+let html="";
+
+for(let i=0;i<10;i++){
+html+=`<div class="bar" style="width:${probs[i]*300}px">
+${i} : ${(probs[i]*100).toFixed(1)}%
+</div>`;
+}
+
+document.getElementById("probabilities").innerHTML=html;
+}
+
+class MnistData{
+
+async load(){
+
+const imgRequest=await fetch(
+'https://storage.googleapis.com/learnjs-data/model-builder/mnist_images.png'
+);
+
+const imgBlob=await imgRequest.blob();
+const imgBitmap=await createImageBitmap(imgBlob);
+
+const canvas=document.createElement('canvas');
+const ctx=canvas.getContext('2d',{willReadFrequently:true});
+
+const datasetBytesBuffer=new ArrayBuffer(65000*28*28*4);
+
+const chunkSize=5000;
+
+canvas.width=imgBitmap.width;
+canvas.height=chunkSize;
+
+for(let i=0;i<65000/chunkSize;i++){
+
+const datasetBytesView=new Float32Array(
+datasetBytesBuffer,
+i*chunkSize*28*28*4,
+chunkSize*28*28
+);
+
+ctx.drawImage(
+imgBitmap,
+0,
+i*chunkSize,
+imgBitmap.width,
+chunkSize,
+0,
+0,
+canvas.width,
+chunkSize
+);
+
+const imageData=ctx.getImageData(0,0,canvas.width,chunkSize);
+
+for(let j=0;j<imageData.data.length/4;j++){
+datasetBytesView[j]=imageData.data[j*4]/255;
+}
+}
+
+this.datasetImages=new Float32Array(datasetBytesBuffer);
+
+const labelsRequest=await fetch(
+'https://storage.googleapis.com/learnjs-data/model-builder/mnist_labels_uint8'
+);
+
+this.datasetLabels=new Uint8Array(await labelsRequest.arrayBuffer());
+
+this.trainImages=this.datasetImages.slice(0,55000*28*28);
+this.trainLabels=this.datasetLabels.slice(0,55000*10);
+}
+
+nextTrainBatch(batchSize){
+
+const batchImagesArray=new Float32Array(batchSize*28*28);
+const batchLabelsArray=new Uint8Array(batchSize*10);
+
+for(let i=0;i<batchSize;i++){
+
+const idx=Math.floor(Math.random()*55000);
+
+const image=this.trainImages.slice(
+idx*28*28,
+idx*28*28+28*28
+);
+
+batchImagesArray.set(image,i*28*28);
+
+const label=this.trainLabels.slice(
+idx*10,
+idx*10+10
+);
+
+batchLabelsArray.set(label,i*10);
+}
+
+const xs=tf.tensor2d(batchImagesArray,[batchSize,28*28])
+.reshape([batchSize,28,28,1]);
+
+const labels=tf.tensor2d(batchLabelsArray,[batchSize,10]);
+
+return{xs,labels};
+}
+}
+
+</script>
+
+</body>
+</html>
