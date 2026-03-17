@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Advanced AI Sentiment Analyzer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0"></script>
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+background:#f3f6fa;
+margin:40px;
+}
+
+textarea{
+width:500px;
+height:120px;
+padding:10px;
+font-size:16px;
+}
+
+button{
+padding:10px 20px;
+margin:10px;
+font-size:16px;
+cursor:pointer;
+}
+
+#status{
+font-size:18px;
+font-weight:bold;
+margin-top:20px;
+}
+
+canvas{
+border:1px solid #ccc;
+margin-top:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Advanced Sentiment Analysis (CNN + LSTM)</h2>
+
+<textarea id="inputText" placeholder="Enter a review..."></textarea>
+
+<br>
+
+<button onclick="trainModel()">Train Model</button>
+<button onclick="predict()">Predict</button>
+
+<p id="status"></p>
+
+<canvas id="graph" width="500" height="200"></canvas>
+
+<script>
+
+// ---------------- DATASET ----------------
+
+const positiveBase = [
+"I love this movie",
+"This film is amazing",
+"Fantastic acting",
+"Great story",
+"Wonderful experience",
+"Excellent movie",
+"Very entertaining film",
+"Brilliant direction",
+"Beautiful cinematography",
+"Superb acting"
+];
+
+const negativeBase = [
+"I hate this movie",
+"This film is terrible",
+"Worst movie ever",
+"Very boring film",
+"Awful acting",
+"Bad story",
+"Very disappointing",
+"Horrible direction",
+"Waste of time",
+"Poor acting"
+];
+
+let dataset=[];
+
+function generateDataset(){
+
+for(let i=0;i<2500;i++){
+
+let p=positiveBase[Math.floor(Math.random()*positiveBase.length)];
+dataset.push({text:p,label:1});
+
+let n=negativeBase[Math.floor(Math.random()*negativeBase.length)];
+dataset.push({text:n,label:0});
+
+}
+
+}
+
+generateDataset();
+
+
+// ---------------- TOKENIZER ----------------
+
+let wordIndex={};
+let maxLen=10;
+
+function buildTokenizer(){
+
+let index=1;
+
+dataset.forEach(d=>{
+
+let words=d.text.toLowerCase().split(" ");
+
+words.forEach(w=>{
+if(!wordIndex[w]){
+wordIndex[w]=index++;
+}
+});
+
+});
+
+}
+
+
+// ---------------- TEXT TO SEQUENCE ----------------
+
+function textToSeq(text){
+
+let words=text.toLowerCase().split(" ");
+
+let seq=[];
+
+words.forEach(w=>{
+seq.push(wordIndex[w] || 0);
+});
+
+while(seq.length<maxLen){
+seq.push(0);
+}
+
+return seq.slice(0,maxLen);
+
+}
+
+
+// ---------------- PREPARE DATA ----------------
+
+function prepareData(){
+
+let xs=[];
+let ys=[];
+
+dataset.forEach(d=>{
+
+xs.push(textToSeq(d.text));
+ys.push(d.label);
+
+});
+
+return{
+xs:tf.tensor2d(xs),
+ys:tf.tensor2d(ys,[ys.length,1])
+};
+
+}
+
+
+// ---------------- MODEL ----------------
+
+let model;
+
+function createModel(vocabSize){
+
+model=tf.sequential();
+
+model.add(tf.layers.embedding({
+inputDim:vocabSize,
+outputDim:64,
+inputLength:maxLen
+}));
+
+model.add(tf.layers.conv1d({
+filters:32,
+kernelSize:3,
+activation:"relu"
+}));
+
+model.add(tf.layers.maxPooling1d({
+poolSize:2
+}));
+
+model.add(tf.layers.lstm({
+units:32
+}));
+
+model.add(tf.layers.dense({
+units:1,
+activation:"sigmoid"
+}));
+
+model.compile({
+optimizer:"adam",
+loss:"binaryCrossentropy",
+metrics:["accuracy"]
+});
+
+}
+
+
+// ---------------- GRAPH ----------------
+
+let ctx=document.getElementById("graph").getContext("2d");
+let losses=[];
+
+function drawGraph(){
+
+ctx.clearRect(0,0,500,200);
+
+ctx.beginPath();
+
+losses.forEach((l,i)=>{
+
+let x=i*25;
+let y=200-(l*150);
+
+if(i===0){
+ctx.moveTo(x,y);
+}else{
+ctx.lineTo(x,y);
+}
+
+});
+
+ctx.stroke();
+
+}
+
+
+// ---------------- TRAINING ----------------
+
+async function trainModel(){
+
+document.getElementById("status").innerText="Preparing data...";
+
+buildTokenizer();
+
+let vocabSize=Object.keys(wordIndex).length+1;
+
+createModel(vocabSize);
+
+let data=prepareData();
+
+document.getElementById("status").innerText="Training...";
+
+await model.fit(data.xs,data.ys,{
+
+epochs:20,
+batchSize:64,
+shuffle:true,
+
+callbacks:{
+onEpochEnd:(epoch,logs)=>{
+
+losses.push(logs.loss);
+drawGraph();
+
+document.getElementById("status").innerText=
+"Epoch "+(epoch+1)+" Loss:"+logs.loss.toFixed(4);
+
+}
+}
+
+});
+
+document.getElementById("status").innerText="Training Complete";
+
+}
+
+
+// ---------------- PREDICTION ----------------
+
+async function predict(){
+
+if(!model){
+alert("Train the model first");
+return;
+}
+
+let text=document.getElementById("inputText").value;
+
+let seq=textToSeq(text);
+
+let input=tf.tensor2d([seq]);
+
+let pred=model.predict(input);
+
+let score=(await pred.data())[0];
+
+if(score>0.5){
+
+document.getElementById("status").innerText="Positive 😊";
+
+}else{
+
+document.getElementById("status").innerText="Negative 😡";
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
