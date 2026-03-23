@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Import Model</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(135deg, #ff512f, #dd2476);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+    }
+
+    .card {
+      padding: 40px;
+      border-radius: 20px;
+      background: rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    input {
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: none;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 15px;
+      border-radius: 10px;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>📥 Import & Predict</h2>
+
+  <button onclick="loadModel()">Load Model</button>
+  <br>
+  <input id="input" placeholder="Enter value">
+  <br>
+  <button onclick="predict()">Predict</button>
+
+  <p id="output"></p>
+</div>
+
+<script>
+let model;
+
+async function loadModel() {
+  model = await tf.loadLayersModel('my-model.json');
+  alert("Model Loaded!");
+}
+
+function predict() {
+  const val = document.getElementById("input").value;
+  const result = model.predict(tf.tensor([Number(val)]));
+
+  result.data().then(data => {
+    output.innerText = "Prediction: " + data[0].toFixed(2);
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Export Model</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(135deg, #11998e, #38ef7d);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+    }
+
+    .card {
+      padding: 40px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      background: #222;
+      color: white;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>⬇ Export Model</h2>
+  <button onclick="exportModel()">Download Model</button>
+  <p id="status"></p>
+</div>
+
+<script>
+async function exportModel() {
+  const model = tf.sequential();
+  model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+
+  model.compile({ loss: 'meanSquaredError', optimizer: 'sgd' });
+
+  const xs = tf.tensor([1,2,3,4,5]);
+  const ys = tf.tensor([2,4,6,8,10]);
+
+  await model.fit(xs, ys, { epochs: 200 });
+  await model.save('downloads://my-model');
+
+  status.innerText = "Downloaded model.json + weights.bin";
+}
+</script>
+
+</body>
+</html>

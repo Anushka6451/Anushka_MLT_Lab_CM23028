@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Load & Predict</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins';
+      background: linear-gradient(135deg, #42275a, #734b6d);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.12);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      width: 420px;
+    }
+
+    input {
+      padding: 12px;
+      width: 80%;
+      border-radius: 10px;
+      border: none;
+      margin-top: 15px;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      background: #ff7eb3;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #output {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>📂 Load & Verify</h2>
+  <p>Expected Logic: <b>y = 2x</b></p>
+
+  <input id="input" type="number" placeholder="Enter value">
+  <button onclick="loadAndPredict()">Predict</button>
+
+  <div id="output">Status: Waiting...</div>
+</div>
+
+<script>
+async function loadAndPredict() {
+  const model = await tf.loadLayersModel('localstorage://my-model');
+
+  const val = document.getElementById("input").value;
+  const input = tf.tensor([Number(val)]);
+  const result = model.predict(input);
+
+  result.data().then(data => {
+    output.innerText =
+      "Prediction: " + data[0].toFixed(2) +
+      " | Expected: " + (val * 2);
+  });
+}
+</script>
+
+</body>
+</html>

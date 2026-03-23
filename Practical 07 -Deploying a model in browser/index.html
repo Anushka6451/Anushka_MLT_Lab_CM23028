@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Model Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.12);
+      padding: 40px;
+      border-radius: 25px;
+      width: 420px;
+      text-align: center;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+
+    h2 {
+      font-size: 28px;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+
+    button {
+      margin: 10px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 16px;
+      background: #00c6ff;
+      color: white;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #0072ff;
+      transform: scale(1.08);
+    }
+
+    input {
+      padding: 14px;
+      width: 85%;
+      border-radius: 12px;
+      border: none;
+      margin-top: 15px;
+      font-size: 16px;
+      text-align: center;
+      outline: none;
+    }
+
+    #output {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>🤖 AI Model Dashboard</h2>
+
+  <button onclick="trainModel()">Train</button>
+  <button onclick="saveModel()">Save</button>
+  <button onclick="loadModel()">Load</button>
+
+  <br>
+
+  <input type="number" id="inputValue" placeholder="Enter value">
+
+  <br>
+
+  <button onclick="predict()">Predict</button>
+
+  <div id="output">Status: Waiting...</div>
+</div>
+
+<script>
+let model;
+
+// Train
+async function trainModel() {
+  model = tf.sequential();
+  model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+
+  model.compile({
+    loss: 'meanSquaredError',
+    optimizer: 'sgd'
+  });
+
+  const xs = tf.tensor([1,2,3,4,5]);
+  const ys = tf.tensor([2,4,6,8,10]);
+
+  document.getElementById("output").innerText = "Training...";
+
+  await model.fit(xs, ys, { epochs: 200 });
+
+  document.getElementById("output").innerText = "Training Complete ✅";
+}
+
+// Save
+async function saveModel() {
+  if (!model) return alert("Train first!");
+  await model.save('localstorage://my-model');
+  document.getElementById("output").innerText = "Model Saved 💾";
+}
+
+// Load
+async function loadModel() {
+  try {
+    model = await tf.loadLayersModel('localstorage://my-model');
+    document.getElementById("output").innerText = "Model Loaded 📂";
+  } catch {
+    alert("No saved model!");
+  }
+}
+
+// Predict
+function predict() {
+  if (!model) return alert("Train or load model!");
+
+  const val = document.getElementById("inputValue").value;
+  if (val === "") return alert("Enter value!");
+
+  const input = tf.tensor([Number(val)]);
+  const result = model.predict(input);
+
+  result.data().then(data => {
+    document.getElementById("output").innerText =
+      "Prediction: " + data[0].toFixed(2);
+  });
+}
+</script>
+
+</body>
+</html>
