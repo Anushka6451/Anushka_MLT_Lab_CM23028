@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Squat Counter</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+</head>
+
+<body>
+
+<h2>Squat Counter</h2>
+<h3 id="count">Reps: 0</h3>
+<canvas id="canvas"></canvas>
+
+<script>
+let webcam, model, ctx;
+let count = 0;
+let stage = "up";
+
+function angle(a, b, c) {
+    const ab = [a.x - b.x, a.y - b.y];
+    const cb = [c.x - b.x, c.y - b.y];
+
+    const dot = ab[0]*cb[0] + ab[1]*cb[1];
+    const mag1 = Math.sqrt(ab[0]**2 + ab[1]**2);
+    const mag2 = Math.sqrt(cb[0]**2 + cb[1]**2);
+
+    return Math.acos(dot / (mag1 * mag2)) * (180 / Math.PI);
+}
+
+async function init() {
+    const URL = "./my_model/";
+    model = await tmPose.load(URL + "model.json", URL + "metadata.json");
+
+    webcam = new tmPose.Webcam(400, 400, true);
+    await webcam.setup();
+    await webcam.play();
+
+    const canvas = document.getElementById("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    ctx = canvas.getContext("2d");
+
+    window.requestAnimationFrame(loop);
+}
+
+async function loop() {
+    webcam.update();
+    await predict();
+    window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+    const { pose } = await model.estimatePose(webcam.canvas);
+
+    ctx.drawImage(webcam.canvas, 0, 0);
+
+    if (pose) {
+        const hip = pose.keypoints[11];
+        const knee = pose.keypoints[13];
+        const ankle = pose.keypoints[15];
+
+        if (hip.score > 0.5 && knee.score > 0.5 && ankle.score > 0.5) {
+            const ang = angle(hip.position, knee.position, ankle.position);
+
+            if (ang < 90) stage = "down";
+
+            if (ang > 160 && stage === "down") {
+                stage = "up";
+                count++;
+                document.getElementById("count").innerText = "Reps: " + count;
+            }
+        }
+
+        tmPose.drawKeypoints(pose.keypoints, 0.5, ctx);
+        tmPose.drawSkeleton(pose.keypoints, 0.5, ctx);
+    }
+}
+
+init();
+</script>
+
+</body>
+</html>

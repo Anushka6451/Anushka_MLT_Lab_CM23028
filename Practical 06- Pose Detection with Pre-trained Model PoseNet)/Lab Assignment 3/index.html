@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Single vs Multi Pose</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+</head>
+
+<body>
+
+<h2>Single vs Multi Pose Analysis</h2>
+<p id="result"></p>
+<canvas id="canvas"></canvas>
+
+<script>
+let webcam, model, ctx;
+
+async function init() {
+    const URL = "./my_model/";
+    model = await tmPose.load(URL + "model.json", URL + "metadata.json");
+
+    webcam = new tmPose.Webcam(400, 400, true);
+    await webcam.setup();
+    await webcam.play();
+
+    const canvas = document.getElementById("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    ctx = canvas.getContext("2d");
+
+    window.requestAnimationFrame(loop);
+}
+
+async function loop() {
+    webcam.update();
+    await predict();
+    window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+    const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+
+    ctx.drawImage(webcam.canvas, 0, 0);
+
+    if (pose) {
+        let avgConfidence = 0;
+
+        pose.keypoints.forEach(k => {
+            avgConfidence += k.score;
+        });
+
+        avgConfidence /= pose.keypoints.length;
+
+        let resultText = "";
+
+        if (avgConfidence > 0.7) {
+            resultText = "Single Person → High Accuracy ✅";
+        } else {
+            resultText = "Multiple People / Occlusion → Low Accuracy ⚠️";
+        }
+
+        document.getElementById("result").innerText =
+            "Avg Confidence: " + avgConfidence.toFixed(2) + " → " + resultText;
+
+        tmPose.drawKeypoints(pose.keypoints, 0.5, ctx);
+        tmPose.drawSkeleton(pose.keypoints, 0.5, ctx);
+    }
+}
+
+init();
+</script>
+
+</body>
+</html>

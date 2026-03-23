@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pose Detection Dashboard</title>
+
+    <!-- TensorFlow -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+
+    <!-- Teachable Machine Pose -->
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+        }
+
+        header {
+            text-align: center;
+            padding: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .container {
+            display: flex;
+            height: 90vh;
+        }
+
+        .left {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .right {
+            flex: 1;
+            padding: 20px;
+        }
+
+        canvas {
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background: #22c55e;
+            color: black;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #16a34a;
+        }
+
+        #label-container div {
+            padding: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #status {
+            font-weight: bold;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>🧍 AI Pose Detection Dashboard</header>
+
+<div class="container">
+
+    <!-- LEFT -->
+    <div class="left">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+
+        <div class="card">
+            <h3>▶ Control</h3>
+            <button onclick="init()">Start Detection</button>
+        </div>
+
+        <div class="card">
+            <h3>📊 Predictions</h3>
+            <div id="label-container"></div>
+        </div>
+
+        <div class="card">
+            <h3>📌 Status</h3>
+            <div id="status">Not Started</div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const URL = "./my_model/";
+
+    let model, webcam, ctx, labelContainer, maxPredictions;
+
+    async function init() {
+        try {
+            document.getElementById("status").innerText = "Loading model...";
+
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmPose.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            document.getElementById("status").innerText = "Model Loaded ✅";
+
+            const size = 400;
+            const flip = true;
+
+            webcam = new tmPose.Webcam(size, size, flip);
+
+            await webcam.setup();
+            await webcam.play();
+
+            // 🔥 IMPORTANT FIX: wait before loop
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            const canvas = document.getElementById("canvas");
+            canvas.width = size;
+            canvas.height = size;
+            ctx = canvas.getContext("2d");
+
+            labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = "";
+
+            for (let i = 0; i < maxPredictions; i++) {
+                let div = document.createElement("div");
+                labelContainer.appendChild(div);
+            }
+
+            document.getElementById("status").innerText = "Detecting... 🔥";
+
+            window.requestAnimationFrame(loop);
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById("status").innerText = "Error ❌";
+        }
+    }
+
+    async function loop() {
+        if (!webcam || !webcam.canvas) return;
+
+        webcam.update();
+        await predict();
+
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        if (!webcam.canvas) return;
+
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const prediction = await model.predict(posenetOutput);
+
+        for (let i = 0; i < maxPredictions; i++) {
+            const prob = prediction[i].probability.toFixed(2);
+
+            labelContainer.childNodes[i].innerHTML =
+                `${prediction[i].className}: ${prob}`;
+        }
+
+        drawPose(pose);
+    }
+
+    function drawPose(pose) {
+        if (!webcam.canvas) return;
+
+        ctx.drawImage(webcam.canvas, 0, 0);
+
+        if (pose) {
+            const minConfidence = 0.5;
+
+            tmPose.drawKeypoints(pose.keypoints, minConfidence, ctx);
+            tmPose.drawSkeleton(pose.keypoints, minConfidence, ctx);
+        }
+    }
+</script>
+
+</body>
+</html>
