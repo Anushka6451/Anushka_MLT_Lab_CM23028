@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation Dashboard</title>
+
+    <!-- Fix favicon error -->
+    <link rel="icon" href="data:,">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            width: 500px;
+            margin: auto;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #00ffcc;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #00ccaa;
+        }
+
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 80%;
+        }
+
+        td, th {
+            border: 1px solid white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .accuracy {
+            font-size: 22px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>📊 Evaluation Dashboard</h1>
+
+<div class="card">
+    <button onclick="runEvaluation()">Run Evaluation</button>
+
+    <div id="accuracy" class="accuracy"></div>
+
+    <table id="matrix"></table>
+</div>
+
+<script>
+function runEvaluation() {
+
+    // Example ground truth and predictions
+    let y_true = [0,1,2,0,1];
+    let y_pred = [0,1,1,0,2];
+
+    // Calculate accuracy
+    let correct = 0;
+    for (let i = 0; i < y_true.length; i++) {
+        if (y_true[i] === y_pred[i]) correct++;
+    }
+
+    let accuracy = correct / y_true.length;
+
+    document.getElementById("accuracy").innerText =
+        "Accuracy: " + (accuracy * 100).toFixed(2) + "%";
+
+    // Confusion matrix (3x3)
+    let cm = [
+        [0,0,0],
+        [0,0,0],
+        [0,0,0]
+    ];
+
+    for (let i = 0; i < y_true.length; i++) {
+        cm[y_true[i]][y_pred[i]]++;
+    }
+
+    // Build table
+    let labels = ["Apple", "Banana", "Orange"];
+
+    let table = "<tr><th></th>";
+    for (let l of labels) table += "<th>" + l + "</th>";
+    table += "</tr>";
+
+    for (let i = 0; i < 3; i++) {
+        table += "<tr><th>" + labels[i] + "</th>";
+        for (let j = 0; j < 3; j++) {
+            table += "<td>" + cm[i][j] + "</td>";
+        }
+        table += "</tr>";
+    }
+
+    document.getElementById("matrix").innerHTML = table;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Fruit Classifier</title>
+
+    <link rel="icon" href="data:,">
+
+    <!-- TensorFlow -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0"></script>
+
+    <!-- FIXED Teachable Machine -->
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 30px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        input {
+            margin: 15px;
+        }
+
+        img {
+            border-radius: 15px;
+            margin-top: 10px;
+        }
+
+        .result {
+            font-size: 24px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .bar-container {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .bar {
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #00ffcc;
+            transition: width 0.5s ease;
+        }
+
+        .label {
+            font-size: 14px;
+        }
+
+        .loader {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🍎 AI Fruit Classifier</h1>
+    <p>Upload an image and let AI predict</p>
+
+    <div class="card">
+        <input type="file" id="imageUpload" accept="image/*">
+        <br>
+        <img id="preview" width="250">
+
+        <div class="result" id="result">Loading model...</div>
+        <div class="loader" id="loader">Please wait...</div>
+
+        <div id="bars" class="bar-container"></div>
+    </div>
+</div>
+
+<script>
+let model;
+
+async function loadModel() {
+    try {
+        const URL = "./my_model/";
+
+        model = await tmImage.load(
+            URL + "model.json",
+            URL + "metadata.json"
+        );
+
+  
+        console.log("tmImage check:", typeof tmImage);
+  
+        document.getElementById("result").innerText = "Model Loaded ✅";
+        document.getElementById("loader").innerText = "Ready!";
+    } catch (error) {
+        console.error(error);
+        document.getElementById("result").innerText = "Error loading model ❌";
+    }
+}
+
+document.getElementById('imageUpload').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    const img = document.getElementById('preview');
+    img.src = URL.createObjectURL(file);
+
+    img.onload = () => predict(img);
+});
+
+async function predict(image) {
+    if (!model) return;
+
+    const predictions = await model.predict(image);
+
+    let best = predictions[0];
+
+    predictions.forEach(p => {
+        if (p.probability > best.probability) best = p;
+    });
+
+    document.getElementById("result").innerText =
+        `Prediction: ${best.className} (${(best.probability*100).toFixed(2)}%)`;
+
+    displayBars(predictions);
+}
+
+function displayBars(predictions) {
+    const barsDiv = document.getElementById("bars");
+    barsDiv.innerHTML = "";
+
+    predictions.forEach(p => {
+        const barHTML = `
+            <div class="label">${p.className} (${(p.probability*100).toFixed(1)}%)</div>
+            <div class="bar">
+                <div class="bar-fill" style="width:${p.probability*100}%"></div>
+            </div>
+        `;
+        barsDiv.innerHTML += barHTML;
+    });
+}
+
+loadModel();
+</script>
+
+</body>
+</html>

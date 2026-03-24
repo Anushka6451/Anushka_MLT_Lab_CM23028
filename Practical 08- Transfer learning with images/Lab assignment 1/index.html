@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Training Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    color: white;
+    text-align:center;
+}
+.card {
+    background: rgba(255,255,255,0.1);
+    padding:20px;
+    margin:20px auto;
+    width:400px;
+    border-radius:15px;
+}
+button {
+    padding:10px;
+    margin:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📊 Training Dashboard</h1>
+
+<div class="card">
+<input type="file" id="upload" multiple><br>
+<button onclick="train()">Train Model</button>
+<h3 id="status">Waiting...</h3>
+</div>
+
+<script>
+let net, xs=[], ys=[], model;
+
+async function init(){
+    net = await mobilenet.load();
+    document.getElementById("status").innerText="MobileNet Loaded";
+}
+init();
+
+document.getElementById("upload").addEventListener("change",(e)=>{
+    for(let file of e.target.files){
+        let img=new Image();
+        img.src=URL.createObjectURL(file);
+
+        img.onload=()=>{
+            let label=prompt("0=Apple,1=Banana,2=Orange");
+
+            let t=tf.browser.fromPixels(img)
+                .resizeNearestNeighbor([224,224])
+                .toFloat()
+                .expandDims();
+
+            xs.push(net.infer(t,true));
+            ys.push(parseInt(label));
+        }
+    }
+});
+
+async function train(){
+    let x=tf.concat(xs);
+    let y=tf.oneHot(tf.tensor1d(ys,'int32'),3);
+
+    model=tf.sequential();
+    model.add(tf.layers.flatten({inputShape:x.shape.slice(1)}));
+    model.add(tf.layers.dense({units:64,activation:'relu'}));
+    model.add(tf.layers.dense({units:3,activation:'softmax'}));
+
+    model.compile({optimizer:'adam',loss:'categoricalCrossentropy'});
+
+    document.getElementById("status").innerText="Training...";
+    await model.fit(x,y,{epochs:10});
+    document.getElementById("status").innerText="Training Done ✅";
+}
+</script>
+
+</body>
+</html>
