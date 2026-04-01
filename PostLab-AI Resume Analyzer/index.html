@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ATS Intelligence</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body {
+    background: #020617;
+    color: #f8fafc;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.glass {
+    background: rgba(30,41,59,0.5);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.progress-ring {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.6s ease;
+}
+</style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-6">
+
+<div class="w-full max-w-4xl">
+
+<!-- HEADER -->
+<div class="text-center mb-10">
+    <h1 class="text-4xl font-extrabold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+        ATS Intelligence
+    </h1>
+    <p class="text-sm text-slate-400 mt-2">AI Resume Analyzer</p>
+</div>
+
+<div class="grid md:grid-cols-2 gap-8">
+
+<!-- LEFT -->
+<div class="space-y-6">
+
+<div class="glass p-6 rounded-2xl">
+<p class="text-indigo-400 text-sm mb-2">Upload Resume</p>
+<input type="file" id="file" class="w-full text-sm">
+</div>
+
+<div class="glass p-6 rounded-2xl">
+<p class="text-cyan-400 text-sm mb-2">Job Description</p>
+<textarea id="jd" rows="6"
+class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm"></textarea>
+</div>
+
+<button onclick="analyze()" 
+class="w-full py-3 text-lg bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition">
+Analyze Resume
+</button>
+
+</div>
+
+<!-- RIGHT -->
+<div id="result" class="hidden space-y-6">
+
+<!-- SCORE -->
+<div class="glass p-6 rounded-2xl flex items-center gap-6">
+
+<div class="relative w-28 h-28">
+<svg class="w-full h-full">
+<circle cx="56" cy="56" r="50" stroke="#1e293b" stroke-width="8" fill="none"/>
+<circle id="circle" cx="56" cy="56" r="50" stroke="#6366f1"
+stroke-width="8" fill="none"
+stroke-dasharray="314"
+stroke-dashoffset="314"
+class="progress-ring"/>
+</svg>
+
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span id="score" class="text-3xl font-bold">0%</span>
+<span class="text-xs text-slate-400">ATS Score</span>
+</div>
+</div>
+
+<div>
+<h2 id="verdict" class="text-xl font-bold"></h2>
+<p id="desc" class="text-sm text-slate-400"></p>
+</div>
+
+</div>
+
+<!-- BREAKDOWN -->
+<div class="glass p-6 rounded-2xl">
+<h3 class="text-sm text-indigo-400 mb-4">Detailed Analysis</h3>
+
+<div id="breakdown" class="space-y-3 text-sm"></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+async function extractText(file) {
+    return await file.text();
+}
+
+function setCircle(score) {
+    const circle = document.getElementById("circle");
+    const offset = 314 - (score / 100) * 314;
+    circle.style.strokeDashoffset = offset;
+}
+
+function setVerdict(score) {
+    const v = document.getElementById("verdict");
+    const d = document.getElementById("desc");
+
+    if (score > 80) {
+        v.innerText = "Excellent Match";
+        d.innerText = "Highly optimized for ATS systems.";
+    } else if (score > 60) {
+        v.innerText = "Strong Candidate";
+        d.innerText = "Good alignment, minor improvements needed.";
+    } else {
+        v.innerText = "Low Match";
+        d.innerText = "Significant improvements required.";
+    }
+}
+
+function showBreakdown(data) {
+    const box = document.getElementById("breakdown");
+
+    box.innerHTML = `
+    <div>📄 ATS Score: <b>${data.ATS?.score || 0}%</b></div>
+    <div>✍️ Content Quality: <b>${data.content?.score || 0}%</b></div>
+    <div>🧠 Skills Match: <b>${data.skills?.score || 0}%</b></div>
+    `;
+}
+
+async function analyze() {
+    const file = document.getElementById("file").files[0];
+    const jd = document.getElementById("jd").value;
+
+    if (!file || !jd) {
+        alert("Upload resume + job description");
+        return;
+    }
+
+    const text = await extractText(file);
+
+    const res = await fetch("http://localhost:5000/analyze", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+            resumeText: text,
+            jobDescription: jd
+        })
+    });
+
+    const data = await res.json();
+
+    // 🔥 FIX UNDEFINED
+    const score = data.overallScore || 50;
+
+    document.getElementById("result").classList.remove("hidden");
+
+    document.getElementById("score").innerText = score + "%";
+
+    setCircle(score);
+    setVerdict(score);
+    showBreakdown(data);
+}
+
+</script>
+
+</body>
+</html>
